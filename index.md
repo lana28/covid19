@@ -216,7 +216,7 @@ missing[[3]] <-gsub("*\\([^\\)]+\\)", "", missing[[3]])
 # Download the coordinate information again 
 missingvalue <- GET('https://dapi.kakao.com/v2/local/search/keyword.json',
              query = list(query = paste(missing[[1]], missing[[2]], missing[[3]])),
-             add_headers(Authorization = "KakaoAK 4f908a1b22ff7f3d0e645d78e5ee843c"))
+             add_headers(Authorization = "KAKAO_MAP_API_KEY"))
 value <- missingvalue %>% 
       content(as = 'text') %>% 
       fromJSON()
