@@ -22,14 +22,11 @@ Call the packages that we need to begin. There are different ways to scrape data
 
 
 ```markdown
-
-
-
 # Information of safe hospitals as the first page 
 # https://www.mohw.go.kr/react/popup_200128.html
 
 # Information of testing places 
-# https://www.mohw.go.kr/react/popup_200128_2.html
+# https://www.mohw.go.kr/react/popup_200128_3.html
 
 # Information of drive-through testing places only.
 # https://www.mohw.go.kr/react/popup_200128_4.html
@@ -45,13 +42,16 @@ place <- list()
 
 # Scrape source codes in HTML form
 for(i in 1:length(url)){
-  place[[i]] <- read_html(url[i], encoding = 'UTF-8') #Don't forget "encoding = 'UTF-8'" as the site is written in Korean
+  place[[i]] <- read_html(url[i], encoding = 'UTF-8') 
+  # Don't forget to put "encoding = 'UTF-8'" as the site is written in Korean
   Sys.sleep(1)   
 }
 
 # Parse the codes in a tree form
 parsedPlace <- lapply(place, function(x) htmlParse(x))
 ```
+We can use `rvest` packagages to track down nodes, but as I am in the beginning of learning web scraping, I will just go one by one. After parsing the extracted source codes, I sort out information that I need by row using `xpathSApply` of package `XML`. It is important to chekc how the webpage is configured. As the index row of the table is included the first row vector after extracting, it is necessarty to subtract 1 to the entire number to go through loop later.    
+
 ```{r}
 # The number of table rows
 num <- c()
@@ -62,6 +62,5 @@ num[2] <- length(xpathSApply(parsedPlace[[2]], "//tr"))
 # Number of drive through testing
 num[3] <- length(xpathSApply(parsedPlace[[3]], "//tr")) 
 
-#### Since the number of table rows include the index rows, it is needed to substract 1 to the numbers to get the exact number of each list later on.
-
+#### Since the number of table rows includes the index rows, it is needed to substract 1 to the numbers later on.
 ```
