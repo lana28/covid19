@@ -1,4 +1,4 @@
-## Comparison Between COVID 19 Testing places and Safe Hospitals, and Drive-Through Testing Places in South Korea 
+## Comparison between COVID 19 Testing places and Safe Hospitals, and Drive-Through Testing Places in South Korea 
 
 This is one of my project in my college, which deals with web scraping. As a graduate student who studies Computational Social Science, I would like to visulalize the hottest issue for now, COVID 19. I wanted to scrape information of testing places, safe hospitals for those who do not have respiratory diseases, and unprecedented drive-through testing places in South Korea. To visualize them, I used API of KAKAO map to acquire exact latitude and longitude of each place and used Google API to see distribution of testing places on a map. 
 
@@ -31,7 +31,7 @@ Call the packages that we need to begin. There are different ways to scrape data
 # Information of drive-through testing places only.
 # https://www.mohw.go.kr/react/popup_200128_4.html
 
-# I store the url pages into url vector.
+# I store the url pages into a url vector.
 
 url <- paste0("https://www.mohw.go.kr/react/popup_200128",c("","_3", "_4"),".html") 
 
