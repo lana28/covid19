@@ -32,15 +32,18 @@ Call the packages that we need to begin. There are different ways to scrape data
 # https://www.mohw.go.kr/react/popup_200128_4.html
 
 # I store the url pages into url vector.
+
 url <- paste0("https://www.mohw.go.kr/react/popup_200128",c("","_3", "_4"),".html") 
 
 ```
 
-```{r}
+```markdown
 # Create an empty list
+
 place <- list()
 
 # Scrape source codes in HTML form
+
 for(i in 1:length(url)){
   place[[i]] <- read_html(url[i], encoding = 'UTF-8') 
   # Don't forget to put "encoding = 'UTF-8'" as the site is written in Korean
@@ -52,7 +55,7 @@ parsedPlace <- lapply(place, function(x) htmlParse(x))
 ```
 We can use `rvest` packagages to track down nodes, but as I am in the beginning of learning web scraping, I will just go one by one. After parsing the extracted source codes, I sort out information that I need by row using `xpathSApply` of package `XML`. It is important to chekc how the webpage is configured. As the index row of the table is included the first row vector after extracting, it is necessarty to subtract 1 to the entire number to go through loop later.    
 
-```{r}
+```markdown
 # The number of table rows
 num <- c()
 # Number of safe hospitals
