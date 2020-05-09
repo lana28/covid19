@@ -67,3 +67,161 @@ num[3] <- length(xpathSApply(parsedPlace[[3]], "//tr"))
 
 #### Since the number of table rows includes the index rows, it is needed to substract 1 to the numbers later on.
 ```
+
+```markdown
+node <- list()
+# Extract elements by nodes(by row)
+info_by_row <- function(page, nodeNum){
+
+  # As the first table row is a list which has two clusters of information: one is information of indices and the other one is the first row 
+  if(nodeNum == 1) { 
+    node <- xpathSApply(page, paste0("//tr[",nodeNum,"]"))[[2]]
+  } else {
+    node <- xpathSApply(page, paste0("//tr[",nodeNum, "]"))[[1]]
+  }
+  #1st column: region, 2nd column: town, 3rd column: name of hospitals
+  FirsttoThird <- paste0(".//td[",1:3,"]")  
+  cells <-c()
+  cells <- xpathSApply(node, FirsttoThird, xmlValue) 
+  return(cells)
+}
+
+
+location <- df <- list()
+for(i in 1:length(parsedPlace)) {
+  location[[i]] <- lapply(1:(num[i]-1), function(x) info_by_row(page = parsedPlace[[i]], nodeNum = x))
+
+}
+
+# Bind them together in the data frame
+# Thus, I store location information of safe hospitals and drive-through testings in the data frame.
+for(j in 1:length(parsedPlace)){
+    df[[j]] <- as.data.frame(do.call(rbind, location[[j]]))
+    names(df[[j]]) <- c("Region", "Town", "Hospital Name")
+    gsub("^\\s|\\s$", "", df[[j]]) 
+    #remove space either beginning of the text or the end
+}
+
+
+```
+
+```markdown
+# To acquire the exact coordinate of each location, paste region, town, hospital names by row
+ addr <-  c()  
+catplace <- function(df) {
+  for(i in 1:nrow(df)){
+
+  addr[i] <- paste(df[i,1], df[i,2], df[i,3])}
+  print(addr)
+}
+
+fulladdr <- lapply(df, function(x) catplace(x))
+# -fulladdr- is the list of concatenated full address to search them as a one keyword 
+# But, before going through search by these keywords, cleasing the unnecessary parts
+
+fulladdr[[2]] <- gsub("*\\t.*", "", fulladdr[[2]]) #remove anything starts with '\t'
+
+# I tried to extract latitude and longitude information of each location from Google using geocode, but the code did not return the exact coordinates as the information of hospital name is written in Korean.   
+
+# Instead of Google, I used Kakao api to use map service which provides more friendly   and accurate information for Korean address. 
+# As a result, I am able to get accurate information of longittude and latitude for     geocoding.
+
+# Greate a function to apply the lists, fulladdr and df
+addrCoord <- function(addr, df) {
+  res <- coord <- list()
+  coordx <- coordy <-c()
+  for(i in 1:length(addr)){
+  res[[i]] <- GET('https://dapi.kakao.com/v2/local/search/keyword.json',
+                  # The given webpage provides keyword search 
+             query = list(query = addr[i]),
+            # The information of each hospital (addr) becomes a keyword to search                   exact coordinates
+             add_headers(Authorization = Sys.getenv('KAKAO_MAP_API_KEY')),
+             Sys.sleep(1))}
+
+  
+  for(j in 1:length(addr)){
+   # As the given webpage is written in JSON, I extract text insides two tags using       jsonlite package
+    coord[[j]] <- res[[j]] %>% 
+      content(as = 'text') %>% 
+      fromJSON()
+   
+    # If there is some missing data, assign NA to the element 
+    if(length(coord[[j]]$documents)==0) {
+      coordx[j] <- NA
+      coordy[j] <- NA
+    } else {
+    # Otherwise, store longitude information to -coordx-, latitude to -coordy-
+      coordx[j] <- coord[[j]]$documents$x[1]
+      coordy[j] <- coord[[j]]$documents$y[1]
+    }   
+  }
+  
+  # Add new columns to the previously created data frame which contains hospital         information
+  df$lon <- coordx
+  df$lat <- coordy
+  
+  print(df)
+}
+
+
+# Store information in the different vectors.
+# safehospital <- addrCoord(fulladdr[[1]], df[[1]])
+# testingplace <- addrCoord(fulladdr[[2]], df[[2]])
+# drivethrough <- addrCoord(fulladdr[[3]], df[[3]])
+
+
+# It takes time to scrape all the information every time, so I save them in the vectors to recall later.
+#save.image("safehospital")
+#save.image('testingplace')
+#save.image("drivethrough")
+
+load("safehospital")
+load("testingplace")
+load("drivethrough")
+table(is.na(safehospital$lat))
+table(is.na(drivethrough))
+
+# Since I bind the previous data frame before cleasing with coordinates, clean it again.
+testingplace[[3]] <- gsub("*\\t.*", "", testingplace[[3]])
+
+
+
+# Focus on testing locations in Seoul
+testingS <- testingplace %>% 
+  filter(Region == "서울")
+
+table(is.na(testingS$lon)) # five missing coordinates
+
+missing2 <- testingS[is.na(testingS$lon),] 
+
+
+missing2 <- gsub("*\\([^\\)]+\\)", "", missing2) #Remove parenthsese 
+missing2 <- as.data.frame(missing2)
+
+
+
+miss <- catplace(missing2)
+addrCoord(miss,missing2) 
+# it returns NULL again, so just keep them as NA in testingS 
+
+
+
+missing <- drivethrough[is.na(drivethrough$lon),] #25th row has missing values
+
+# The name of hospital has somewhat confusing information in the parentheses.
+# Remove the words in parentheses
+missing[[3]] <-gsub("*\\([^\\)]+\\)", "", missing[[3]]) 
+
+
+# Download the coordinate information again 
+missingvalue <- GET('https://dapi.kakao.com/v2/local/search/keyword.json',
+             query = list(query = paste(missing[[1]], missing[[2]], missing[[3]])),
+             add_headers(Authorization = "KakaoAK 4f908a1b22ff7f3d0e645d78e5ee843c"))
+value <- missingvalue %>% 
+      content(as = 'text') %>% 
+      fromJSON()
+drivethrough[25,4] <- value$documents$x[1] #longitude
+drivethrough[25,5] <- value$documents$y[1] #latitude
+
+table(is.na(drivethrough)) # No NA anymore!
+```
